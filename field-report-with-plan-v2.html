@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現場監督日報</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f0f3f7;
+    --border: #dde2ec;
+    --border2: #c8d0e0;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --success: #059669;
+    --success-light: #ecfdf5;
+    --text: #1a2035;
+    --text2: #4b5775;
+    --text3: #9aa3b8;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --gps: #059669;
+    --gps-light: #ecfdf5;
+    --warning: #d97706;
+    --orange: #ea580c;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 0 0 1px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .app { max-width: 640px; margin: 0 auto; padding: 16px 14px 80px; }
+
+  .header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px; padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .logo {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0; box-shadow: var(--shadow-md);
+  }
+  .header-text h1 { font-size: 17px; font-weight: 700; }
+  .header-text p { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; }
+
+  /* GAS status badge */
+  .gas-badge {
+    margin-left: auto; display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px; font-size: 11px;
+    font-weight: 600; color: var(--text3); cursor: pointer;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .gas-badge.connected { background: var(--success-light); border-color: var(--success); color: var(--success); }
+  .gas-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
+  .gas-badge.connected .dot { background: var(--success); box-shadow: 0 0 5px rgba(5,150,105,0.5); }
+
+  .tabs {
+    display: flex; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px; margin-bottom: 18px;
+  }
+  .tab {
+    flex: 1; padding: 9px 4px; text-align: center;
+    font-size: 12px; font-weight: 500; border-radius: 9px;
+    cursor: pointer; transition: all 0.2s;
+    color: var(--text2); border: none; background: none;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .tab.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--surface); border-radius: 14px; padding: 18px;
+    margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .card-hint { font-size: 11px; color: var(--text3); margin-bottom: 12px; margin-top: -6px; line-height: 1.6; }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 5px; }
+
+  input[type="text"], input[type="time"], input[type="date"], textarea, select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 13px;
+    color: var(--text); font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+  }
+  input[type="time"] { font-family: 'Space Mono', monospace; font-size: 16px; }
+
+  .time-now-row { display: flex; gap: 8px; align-items: stretch; }
+  .time-now-row input[type="time"] { flex: 1; }
+  .time-now-row-depart { width: 100%; max-width: 220px; }
+  .time-now-btn {
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 0 12px; background: var(--accent-light);
+    border: 1px solid var(--accent); border-radius: 8px;
+    color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .time-now-btn:hover { background: var(--accent); color: #fff; }
+  .time-now-btn:active { transform: scale(0.96); }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 2px; cursor: pointer;
+  }
+  .checkbox-row input[type="checkbox"] {
+    width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0;
+  }
+  .checkbox-row span { font-size: 14px; color: var(--text); font-weight: 500; }
+  input[type="date"] { font-family: 'Space Mono', monospace; }
+  textarea { resize: vertical; min-height: 64px; }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #fff;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text3); }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+  /* GPS */
+  .gps-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 6px; }
+  .gps-display {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; flex: 1; min-height: 44px;
+  }
+  .gps-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; transition: background 0.3s; }
+  .gps-dot.ok { background: var(--gps); box-shadow: 0 0 6px rgba(5,150,105,0.4); }
+  .gps-dot.err { background: var(--red); }
+  .gps-addr { font-size: 12px; color: var(--text2); line-height: 1.4; }
+  .gps-coord { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; }
+  .gps-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px; background: var(--gps-light);
+    border: 1px solid var(--gps); border-radius: 8px;
+    color: var(--gps); font-size: 12px; cursor: pointer;
+    transition: all 0.2s; font-family: 'Noto Sans JP', sans-serif;
+    white-space: nowrap; flex-shrink: 0; font-weight: 600;
+  }
+  .gps-btn:hover { background: var(--gps); color: #fff; }
+  .gps-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* legacy fixed work-row (kept for CSS compat, unused) */
+  .col-hd {
+    display: grid; grid-template-columns: 1fr 90px 30px;
+    gap: 8px; margin-bottom: 6px; padding: 0 2px;
+  }
+  .col-hd span { font-size: 10px; color: var(--text3); font-weight: 600; text-align: center; }
+  .col-hd span:first-child { text-align: left; }
+  .col-hd-work { grid-template-columns: 26px 1fr; }
+  .col-hd-work span:nth-child(2) { text-align: left; }
+
+  .work-row { display: grid; grid-template-columns: 1fr 90px 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .work-label {
+    font-size: 13px; color: var(--text); font-weight: 500;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .min-input {
+    background: var(--accent-light); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 10px;
+    color: var(--accent); font-size: 17px; font-weight: 700;
+    font-family: 'Space Mono', monospace; text-align: right;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+  }
+  .min-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); background: #fff; }
+  .min-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  .unit-label { font-size: 12px; color: var(--text3); text-align: center; font-weight: 500; }
+
+  /* Plan-based work item card (in 実績 tab) - チェック＋実績到着/出発 */
+  .work-item-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+    box-shadow: var(--shadow); transition: opacity 0.2s;
+  }
+  .work-item-card.unselected { opacity: 0.55; }
+  .work-check-inline { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .work-check-inline input[type="checkbox"] {
+    width: 20px; height: 20px; margin-top: 2px; cursor: pointer;
+    accent-color: var(--accent); flex-shrink: 0;
+  }
+  .work-check-inline .wl-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; }
+  .work-item-card .wl-sub { font-size: 10px; color: var(--text3); line-height: 1.5; margin-left: 30px; margin-bottom: 2px; }
+  .work-item-duration { font-size: 12px; color: var(--accent); font-weight: 700; font-family: 'Space Mono', monospace; text-align: right; }
+
+  /* Plan item card (in 計画 tab) */
+  .plan-item-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .plan-item-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .plan-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 700;
+  }
+
+  /* 計画外の追加項目カード（★） */
+  .other-item-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .other-item-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .star-mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--orange); color: #fff; font-size: 14px;
+  }
+
+  .rm-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text3); cursor: pointer; font-size: 14px;
+    transition: all 0.2s; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rm-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
+
+  .add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px; background: none;
+    border: 1.5px dashed var(--border2); border-radius: 8px;
+    color: var(--text3); font-size: 13px; cursor: pointer;
+    transition: all 0.2s; width: 100%; margin-top: 6px;
+    font-family: 'Noto Sans JP', sans-serif; font-weight: 500;
+  }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* Summary */
+  .summary-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .summary-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px; border-bottom: 1px solid var(--border);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { font-size: 13px; color: var(--text2); font-weight: 500; }
+  .summary-sub { font-size: 10px; color: var(--text3); margin-left: 4px; }
+  .summary-val { font-size: 22px; font-weight: 700; font-family: 'Space Mono', monospace; color: var(--accent); }
+  .summary-unit { font-size: 12px; color: var(--text3); margin-left: 3px; }
+  .depart-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); gap: 12px;
+  }
+  .depart-input {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; color: var(--accent); font-size: 18px; font-weight: 700;
+    font-family: 'Space Mono', monospace; text-align: right; outline: none; width: 140px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .depart-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .auto-time-box {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 13px;
+    color: var(--accent); font-size: 17px; font-weight: 700;
+    font-family: 'Space Mono', monospace;
+  }
+  .auto-time-box-depart { padding: 6px 12px; font-size: 18px; }
+  .elapsed-val { color: var(--success) !important; }
+  .elapsed-na { color: var(--text3) !important; font-size: 14px !important; }
+
+  /* Photo */
+  .photo-drop-area {
+    border: 2px dashed var(--border2); border-radius: 12px; padding: 24px 16px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface2); position: relative;
+  }
+  .photo-drop-area:hover, .photo-drop-area.drag-over { border-color: var(--accent); background: var(--accent-light); }
+  .photo-drop-area input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%; border: none; background: none; padding: 0;
+  }
+  .photo-drop-area input[type="file"]:focus { box-shadow: none; }
+  .drop-icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-text { font-size: 13px; color: var(--text2); font-weight: 500; }
+  .drop-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .photo-item { position: relative; border-radius: 10px; overflow: hidden; background: var(--surface2); border: 1px solid var(--border); aspect-ratio: 1; }
+  .photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 50%);
+    display: flex; flex-direction: column; justify-content: flex-end; padding: 8px;
+  }
+  .photo-timestamp { font-size: 10px; color: #fff; font-family: 'Space Mono', monospace; font-weight: 700; line-height: 1.3; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+  .photo-remove {
+    position: absolute; top: 5px; right: 5px; width: 22px; height: 22px;
+    border-radius: 50%; background: rgba(0,0,0,0.55); border: none;
+    color: #fff; font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+  }
+  .photo-remove:hover { background: var(--red); }
+  .photo-count { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+
+  /* Save button */
+  .temp-btn {
+    width: 100%; padding: 13px;
+    background: #fff;
+    border: 2px solid var(--accent);
+    border-radius: 12px; color: var(--accent);
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 4px; margin-bottom: 8px;
+  }
+  .temp-btn:hover { background: var(--accent-light); }
+  .temp-btn:active { transform: scale(0.99); }
+
+  .draft-banner {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .draft-banner.show { display: flex; }
+  .draft-banner-text { font-size: 13px; color: #92400e; font-weight: 500; }
+  .draft-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .draft-yes-btn {
+    padding: 7px 14px;
+    background: var(--warning);
+    border: none; border-radius: 8px;
+    color: #fff; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+  }
+  .draft-no-btn {
+    padding: 7px 14px;
+    background: none;
+    border: 1px solid var(--border2); border-radius: 8px;
+    color: var(--text2); font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .gen-btn {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, var(--success), #047857);
+    border: none; border-radius: 12px; color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    font-family: 'Noto Sans JP', sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 4px; box-shadow: 0 4px 14px rgba(5,150,105,0.35);
+  }
+  .gen-btn:hover { opacity: 0.92; }
+  .gen-btn:active { transform: scale(0.99); }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Action buttons */
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .act-btn {
+    flex: 1; min-width: 70px; padding: 10px 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text2); font-size: 12px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    font-family: 'Noto Sans JP', sans-serif; font-weight: 600;
+  }
+  .act-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* History */
+  .hist-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 10px;
+    cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow);
+  }
+  .hist-item:hover { border-color: var(--accent); box-shadow: 0 2px 12px rgba(37,99,235,0.12); }
+  .hist-meta { display: flex; justify-content: space-between; margin-bottom: 6px; align-items: center; }
+  .hist-date { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--accent); font-weight: 700; }
+  .hist-sub { font-size: 11px; color: var(--text3); }
+  .hist-preview { font-size: 13px; color: var(--text2); }
+
+  /* GAS Setup panel */
+  .setup-step {
+    display: flex; gap: 12px; margin-bottom: 18px; align-items: flex-start;
+  }
+  .step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .step-desc { font-size: 12px; color: var(--text2); line-height: 1.7; }
+
+  .code-block {
+    background: #1e2330; border-radius: 10px; padding: 14px;
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    color: #a8d8a8; overflow-x: auto; margin: 10px 0;
+    border: 1px solid #2a2f42; white-space: pre; line-height: 1.7;
+    position: relative;
+  }
+  .copy-code-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: #2a2f42; border: 1px solid #3a3f52;
+    border-radius: 6px; color: #8892aa; font-size: 11px;
+    padding: 4px 10px; cursor: pointer; transition: all 0.2s;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .copy-code-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .url-input-row { display: flex; gap: 8px; align-items: center; }
+  .url-input-row input { flex: 1; font-size: 12px; font-family: 'Space Mono', monospace; }
+  .url-save-btn {
+    padding: 10px 16px; background: var(--accent); border: none;
+    border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.2s; white-space: nowrap;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .url-save-btn:hover { opacity: 0.88; }
+
+  .alert-box {
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;
+    font-size: 12px; line-height: 1.7;
+  }
+  .alert-box.info { background: var(--accent-light); border: 1px solid #bfdbfe; color: #1d4ed8; }
+  .alert-box.success { background: var(--success-light); border: 1px solid #a7f3d0; color: #065f46; }
+  .alert-box.warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+
+  .sheet-link-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 12px;
+    background: #fff; border: 1.5px solid var(--border2);
+    border-radius: 10px; color: var(--text2); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+    font-family: 'Noto Sans JP', sans-serif; margin-top: 8px;
+  }
+  .sheet-link-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* Empty */
+  .empty { text-align: center; padding: 50px 0; color: var(--text3); }
+  .empty .ico { font-size: 32px; margin-bottom: 10px; }
+  .empty p { font-size: 13px; }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+    z-index: 100; display: none; align-items: flex-end; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 20px; width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.15); animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 16px; }
+  .modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .modal-hd h3 { font-size: 15px; font-weight: 700; }
+  .modal-close { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text2); font-size: 16px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+  .modal-body { white-space: pre-wrap; font-size: 13px; line-height: 2; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+
+  /* Snack */
+  .snack {
+    position: fixed; bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: #fff;
+    padding: 10px 22px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    transition: transform 0.3s ease; z-index: 200; white-space: nowrap; box-shadow: var(--shadow-md);
+  }
+  .snack.show { transform: translateX(-50%) translateY(0); }
+
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: rot 0.7s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">📋</div>
+    <div class="header-text">
+      <h1>現場監督日報</h1>
+      <p>FIELD WORK REPORT</p>
+    </div>
+    <div class="gas-badge" id="gasBadge" onclick="sw('setup')">
+      <div class="dot" id="gasDot"></div>
+      <span id="gasLabel">未連携</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="sw('input')">📝 実績</button>
+    <button class="tab" onclick="sw('plan')">📅 計画</button>
+    <button class="tab" onclick="sw('history')">📁 履歴</button>
+    <button class="tab" onclick="sw('setup')">⚙️ 設定</button>
+  </div>
+
+  <!-- ===== INPUT ===== -->
+  <div id="panel-input" class="panel active">
+
+    <!-- 下書き復元バナー -->
+    <div class="draft-banner" id="draftBanner">
+      <div class="draft-banner-text">📝 前回の一時保存データがあります。復元しますか？</div>
+      <div class="draft-actions">
+        <button class="draft-yes-btn" onclick="restoreDraft()">復元する</button>
+        <button class="draft-no-btn" onclick="dismissDraft()">削除</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">基本情報</div>
+      <div class="field">
+        <div class="field-label">日にち</div>
+        <input type="date" id="reportDate" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">現場・場所（現場ごとの実績記録）</div>
+      <div class="card-hint">✅ 訪れた現場ごとに、実績到着・実績出発を記録してください（所要時間は自動計算されます）</div>
+      <div class="alert-box warning" id="planEmptyMsg" style="display:none;">
+        ⚠️ この日の計画がまだありません。先に「計画」タブで本日の予定を作成してください。
+        <button class="add-btn" style="margin-top:8px;" onclick="sw('plan')">📅 計画を作成する</button>
+      </div>
+      <div id="siteRecordsContainer"></div>
+      <button class="add-btn" onclick="addSiteRecord()">＋ 現場を追加</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">帰宅時間</div>
+      <div class="field">
+        <div class="field-label">帰宅した時間</div>
+        <div class="time-now-row">
+          <input type="time" id="homeTime" oninput="updateOvertimeDisplay()" />
+          <button type="button" class="time-now-btn" onclick="setNow('homeTime'); updateOvertimeDisplay();">🕐 今</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">集計</div>
+      <div class="summary-box">
+        <div class="summary-row">
+          <div class="summary-label">残業時間 <span class="summary-sub">（帰宅17:30超過分・自動計算）</span></div>
+          <div><span class="summary-val elapsed-na" id="overtimeCalcVal">―</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">残業分析</div>
+      <div class="field">
+        <div class="field-label">残業について</div>
+        <textarea id="overtimeReason" placeholder="残業の原因・理由や状況を入力してください"></textarea>
+      </div>
+    </div>
+
+    <button class="temp-btn" onclick="saveDraft()">
+      📝 一時保存する
+    </button>
+
+    <button class="gen-btn" id="saveBtn" onclick="saveReport()">
+      ☁️ 日報を保存・送信する
+    </button>
+  </div>
+
+  <!-- ===== PLAN ===== -->
+  <div id="panel-plan" class="panel">
+
+    <div class="card">
+      <div class="card-title">計画対象日</div>
+      <div class="field">
+        <div class="field-label">日にち</div>
+        <input type="date" id="planDate" oninput="loadPlanList()" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">本日の計画一覧</div>
+      <div id="planList"></div>
+      <button class="add-btn" onclick="addPlanItem()">＋ 計画を追加</button>
+    </div>
+
+    <button class="gen-btn" onclick="savePlan()">
+      📅 計画を保存する
+    </button>
+  </div>
+
+  <!-- ===== HISTORY ===== -->
+  <div id="panel-history" class="panel">
+    <div class="card">
+      <div class="card-title">保存済み日報</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <!-- ===== SETUP ===== -->
+  <div id="panel-setup" class="panel">
+
+    <div class="card">
+      <div class="card-title">Googleスプレッドシート連携</div>
+
+      <div class="alert-box info">
+        📌 一度だけ設定すれば、あとは「保存」ボタンを押すだけで自動的にスプレッドシートに記録されます。
+      </div>
+
+      <!-- Step 1 -->
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Googleスプレッドシートを新規作成</div>
+          <div class="step-desc">
+            Googleドライブを開き、「新規 → Googleスプレッドシート」で新しいシートを作成してください。<br>
+            シート名は「日報」などわかりやすい名前にしておくと便利です。
+          </div>
+          <a class="sheet-link-btn" href="https://sheets.new" target="_blank">📊 スプレッドシートを新規作成</a>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Apps Script を開く</div>
+          <div class="step-desc">
+            スプレッドシートのメニューから<br>
+            <strong>「拡張機能」→「Apps Script」</strong> をクリック
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">以下のコードを貼り付けて保存</div>
+          <div class="step-desc">既存のコードを全て削除してから貼り付けてください。<br><strong>※以前このアプリを設定済みの方は、列構成が変わったため（「現場ごとの実績」「残業」「残業理由」「帰宅時間」列を含む）、コードの貼り替えをおすすめします。</strong></div>
+          <div class="code-block" id="gasCode">function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+                              .getActiveSheet();
+
+    // ヘッダーが無ければ追加
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        '送信日時','日にち','現場名','住所',
+        '現場ごとの実績',
+        '残業時間(自動計算)','残業分析','帰宅時間','写真枚数'
+      ]);
+    }
+
+    // データ行を追加
+    sheet.appendRow([
+      new Date().toLocaleString('ja-JP'),
+      data.date        || '',
+      data.siteName    || '',
+      data.address     || '',
+      data.workItems   || '',
+      data.overtimeAuto || 'なし',
+      data.overtimeReason || '',
+      data.homeTime    || '',
+      data.photoCount  || 0
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({result:'success'}))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({result:'error', message:err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+</div>
+          <button class="copy-code-btn" onclick="copyCode()">コピー</button>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="setup-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">デプロイ（公開）する</div>
+          <div class="step-desc">
+            ① Apps Script 画面右上「<strong>デプロイ</strong>」→「<strong>新しいデプロイ</strong>」<br>
+            ② 種類：<strong>「ウェブアプリ」</strong> を選択<br>
+            ③ 実行ユーザー：<strong>「自分」</strong><br>
+            ④ アクセスできるユーザー：<strong>「全員」</strong><br>
+            ⑤「デプロイ」ボタンを押す<br>
+            ⑥ Googleアカウントの許可を求められたら「<strong>許可</strong>」を選択<br>
+            ⑦ 表示された <strong>「ウェブアプリのURL」</strong> をコピー
+          </div>
+          <div class="alert-box warning" style="margin-top:8px;">
+            ⚠️「アクセスできるユーザー」は必ず<strong>「全員」</strong>にしてください。<br>
+            「自分のみ」にするとスマートフォンから送信できません。
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="setup-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">URLをここに貼り付けて保存</div>
+          <div class="url-input-row">
+            <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/..." />
+            <button class="url-save-btn" onclick="saveGasUrl()">保存</button>
+          </div>
+          <div style="margin-top:6px;" id="urlStatus"></div>
+        </div>
+      </div>
+
+      <div class="alert-box success" id="connectedMsg" style="display:none;">
+        ✅ スプレッドシートと連携済みです。「入力」タブから日報を送信できます。
+      </div>
+
+    </div>
+  </div><!-- /setup -->
+
+</div><!-- /app -->
+
+<!-- Success Modal -->
+<div class="overlay" id="successModal">
+  <div class="modal" style="text-align:center;padding:32px 24px;">
+    <div style="font-size:56px;margin-bottom:16px;">✅</div>
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:10px;color:var(--text);">送信完了！</h3>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.7;">
+      日報をスプレッドシートに送信しました。<br>入力内容をリセットします。
+    </p>
+    <button onclick="closeSuccessAndReset()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--success),#047857);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">
+      OK
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <h3 id="modalTitle"></h3>
+      <button class="modal-close" onclick="document.getElementById('overlay').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="act-btn" onclick="copyModal()">📋 コピー</button>
+      <button class="act-btn" onclick="shareModal()">📤 共有</button>
+    </div>
+  </div>
+</div>
+
+<div class="snack" id="snack"></div>
+
+<script>
+// ── State ─────────────────────────────────────────
+let siteRecords = [];             // 現場ごとの実績記録: {id, site, siteOther, content, actualArrival, actualDeparture}
+let plans     = JSON.parse(localStorage.getItem('planRep_plans') || '{}'); // 日付キー: 計画項目の配列
+let planItems = [];                // 計画タブで編集中のリスト
+let photos    = [];
+let rHistory  = JSON.parse(localStorage.getItem('planRep_history') || '[]');
+let gasUrl = localStorage.getItem('planRep_gasUrl') || '';
+
+// ── Init ──────────────────────────────────────────
+const today = new Date();
+document.getElementById('reportDate').value = today.toISOString().slice(0,10);
+document.getElementById('planDate').value = today.toISOString().slice(0,10);
+if (gasUrl) document.getElementById('gasUrlInput').value = gasUrl;
+updateGasStatus();
+renderHistory();
+checkDraft();
+document.getElementById('reportDate').addEventListener('change', loadPlanForDate);
+loadPlanForDate();
+updateOvertimeDisplay();
+
+function fmt2(n){ return String(n).padStart(2,'0'); }
+function timeToMinutes(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function setNow(fieldId){
+  const now = new Date();
+  document.getElementById(fieldId).value = fmt2(now.getHours()) + ':' + fmt2(now.getMinutes());
+  snack('🕐 現在時刻をセットしました');
+}
+function updateOvertimeDisplay(){
+  const home = document.getElementById('homeTime').value;
+  const el = document.getElementById('overtimeCalcVal');
+  if(!home){ el.textContent='―'; el.className='summary-val elapsed-na'; return; }
+  const mins = computeDurationMinutes('17:30', home);
+  if(mins==null || mins<=0){
+    el.textContent='なし'; el.className='summary-val elapsed-na';
+  } else {
+    el.textContent = formatMinutes(mins); el.className='summary-val elapsed-val';
+  }
+}
+function fmtDate(d){
+  const w=['日','月','火','水','木','金','土'][d.getDay()];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;
+}
+function circledNumber(n){
+  const c=['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮'];
+  return c[n-1] || `(${n})`;
+}
+function computeDurationMinutes(start, end){
+  if(!start || !end) return null;
+  const [sh,sm]=start.split(':').map(Number);
+  const [eh,em]=end.split(':').map(Number);
+  const diff=(eh*60+em)-(sh*60+sm);
+  if(diff<0) return null;
+  return diff;
+}
+function formatMinutes(min){
+  if(min==null || min==='') return '―';
+  const h=Math.floor(min/60), m=min%60;
+  return h>0 ? `${h}時間${m}分` : `${m}分`;
+}
+
+// ── GAS status ────────────────────────────────────
+function updateGasStatus(){
+  const badge = document.getElementById('gasBadge');
+  const dot   = document.getElementById('gasDot');
+  const label = document.getElementById('gasLabel');
+  const msg   = document.getElementById('connectedMsg');
+  if(gasUrl){
+    badge.className = 'gas-badge connected';
+    dot.style.background = '';
+    label.textContent = 'シート連携済';
+    if(msg) msg.style.display = 'block';
+  } else {
+    badge.className = 'gas-badge';
+    dot.style.background = '';
+    label.textContent = '未連携';
+    if(msg) msg.style.display = 'none';
+  }
+}
+
+function saveGasUrl(){
+  const val = document.getElementById('gasUrlInput').value.trim();
+  if(!val){ snack('❌ URLを入力してください'); return; }
+  if(!val.startsWith('https://script.google.com')){
+    snack('❌ Google Apps ScriptのURLを入力してください'); return;
+  }
+  gasUrl = val;
+  localStorage.setItem('planRep_gasUrl', gasUrl);
+  updateGasStatus();
+  document.getElementById('urlStatus').innerHTML =
+    '<span style="color:var(--success);font-size:12px;font-weight:600;">✅ URLを保存しました</span>';
+  snack('✅ スプレッドシートと連携しました');
+}
+
+// ── Tabs ──────────────────────────────────────────
+function sw(tab){
+  const order = ['input','plan','history','setup'];
+  document.querySelectorAll('.tab').forEach((t,i)=>
+    t.classList.toggle('active', order[i]===tab));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='history') renderHistory();
+  if(tab==='plan'){
+    if(!document.getElementById('planDate').value){
+      document.getElementById('planDate').value = document.getElementById('reportDate').value;
+    }
+    loadPlanList();
+  }
+}
+
+// ── GPS ───────────────────────────────────────────
+function getGPSForRecord(i){
+  if(!navigator.geolocation){snack('❌ GPS未対応のブラウザです');return;}
+  snack('📡 GPS取得中...');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    siteRecords[i].gpsLat=lat; siteRecords[i].gpsLng=lng;
+    try{
+      const r=await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ja`,
+        {headers:{'User-Agent':'FieldReport/1.0'}});
+      if(r.ok){
+        const d=await r.json(); const a=d.address||{};
+        const parts=[];
+        if(a.state) parts.push(a.state);
+        if(a.city) parts.push(a.city); else if(a.county) parts.push(a.county);
+        if(a.suburb) parts.push(a.suburb); else if(a.neighbourhood) parts.push(a.neighbourhood);
+        if(a.road) parts.push(a.road);
+        if(a.house_number) parts.push(a.house_number);
+        if(a.amenity||a.building) parts.unshift(a.amenity||a.building);
+        siteRecords[i].address = parts.length>0?parts.join(''):d.display_name;
+        snack('📍 住所を取得しました');
+      } else {
+        siteRecords[i].address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        snack('⚠️ 座標のみ取得');
+      }
+    }catch(e){
+      siteRecords[i].address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      snack('⚠️ 座標のみ取得');
+    }
+    renderSiteRecords();
+  },err=>{
+    const m={1:'位置情報が拒否されました',2:'GPS信号なし',3:'タイムアウト'};
+    snack('❌ '+(m[err.code]||err.message));
+  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+
+// ── Plan (計画タブ) ───────────────────────────────
+const TASK_OPTIONS = [
+  '着工確認','現場確認','最終チェック','報告書作成','着工前準備',
+  '現場説明','挨拶文配布','打ち合わせ','現場作業','資料作成',
+  '社内MT','立会','現場管理','その他'
+];
+const GOAL_OPTIONS = [
+  '現場作業開始','現場問題解決','完工準備完了','報告書提出','着工可能万全',
+  '現場内容通達確認','挨拶文配布完了','打ち合わせ簿サイン済み','現場作業完了','資料提出',
+  '社内MT決定事項計画済み','立会後動作計画済み','現場状況共有済み','その他'
+];
+function newPlanItem(){
+  return {id:Date.now()+Math.random(), site:'', task:'', taskDetail:'', startTime:'', endTime:'', goal:'', goalDetail:''};
+}
+function loadPlanList(){
+  let date = document.getElementById('planDate').value;
+  if(!date){
+    date = new Date().toISOString().slice(0,10);
+    document.getElementById('planDate').value = date;
+  }
+  planItems = (plans[date]||[]).map(p=>({...p}));
+  if(!planItems.length) planItems.push(newPlanItem());
+  renderPlanList();
+}
+function addPlanItem(){
+  planItems.push(newPlanItem());
+  renderPlanList();
+}
+function removePlanItem(id){
+  planItems = planItems.filter(p=>p.id!==id);
+  if(!planItems.length) planItems.push(newPlanItem());
+  renderPlanList();
+}
+function renderPlanList(){
+  const c = document.getElementById('planList');
+  c.innerHTML = '';
+  planItems.forEach((p,i)=>{
+    const div = document.createElement('div');
+    div.className = 'plan-item-card';
+    div.innerHTML = `
+      <div class="plan-item-hd">
+        <span class="plan-num">${circledNumber(i+1)}</span>
+        <button class="rm-btn" onclick="removePlanItem(${p.id})">✕</button>
+      </div>
+      <div class="field">
+        <div class="field-label">現場名</div>
+        <input type="text" value="${esc(p.site)}" placeholder="現場名"
+          oninput="planItems[${i}].site=this.value" />
+      </div>
+      <div class="field">
+        <div class="field-label">作業内容</div>
+        <select onchange="planItems[${i}].task=this.value">
+          <option value="">選択してください</option>
+          ${TASK_OPTIONS.map(opt=>`<option value="${opt}"${p.task===opt?' selected':''}>${opt}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">詳細</div>
+        <input type="text" value="${esc(p.taskDetail)}" placeholder="詳細（任意）"
+          oninput="planItems[${i}].taskDetail=this.value" />
+      </div>
+      <div class="two">
+        <div class="field">
+          <div class="field-label">開始予定</div>
+          <input type="time" value="${p.startTime||''}"
+            oninput="planItems[${i}].startTime=this.value" />
+        </div>
+        <div class="field">
+          <div class="field-label">終了予定</div>
+          <input type="time" value="${p.endTime||''}"
+            oninput="planItems[${i}].endTime=this.value" />
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">ゴール設定</div>
+        <select onchange="planItems[${i}].goal=this.value">
+          <option value="">選択してください</option>
+          ${GOAL_OPTIONS.map(opt=>`<option value="${opt}"${p.goal===opt?' selected':''}>${opt}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">詳細</div>
+        <input type="text" value="${esc(p.goalDetail)}" placeholder="詳細（任意）"
+          oninput="planItems[${i}].goalDetail=this.value" />
+      </div>`;
+    c.appendChild(div);
+  });
+}
+function savePlan(){
+  const date = document.getElementById('planDate').value;
+  if(!date){ snack('❌ 日にちを選択してください'); return; }
+  const valid = planItems.filter(p=>p.site || p.task);
+  plans[date] = valid;
+  localStorage.setItem('planRep_plans', JSON.stringify(plans));
+  snack(`✅ 計画を保存しました（${valid.length}件）`);
+  if(document.getElementById('reportDate').value === date) loadPlanForDate();
+}
+
+// ── 業務内容（実績タブ）: 計画から生成 + 実行有無をチェックで選択 + 実績到着/出発 ──
+function loadPlanForDate(){
+  const date = document.getElementById('reportDate').value;
+  const todays = plans[date] || [];
+  const uniqueSites = [...new Set(todays.map(p=>p.site).filter(s=>s))];
+  siteRecords = uniqueSites.map(site=>({
+    id: Date.now()+Math.random(), site, siteOther:'', content:'', actualArrival:'', actualDeparture:'',
+    address:'', gpsLat:null, gpsLng:null
+  }));
+  renderSiteRecords();
+}
+function addSiteRecord(){
+  siteRecords.push({id: Date.now()+Math.random(), site:'', siteOther:'', content:'', actualArrival:'', actualDeparture:'',
+    address:'', gpsLat:null, gpsLng:null});
+  renderSiteRecords();
+}
+function removeSiteRecord(id){
+  siteRecords = siteRecords.filter(r=>r.id!==id);
+  renderSiteRecords();
+}
+function setSiteRecordField(i, field, value){
+  siteRecords[i][field] = value;
+  renderSiteRecords();
+}
+function setSiteRecordTime(i, field, value){
+  siteRecords[i][field] = value;
+  renderSiteRecords();
+}
+function setSiteRecordTimeNow(i, field){
+  const now = new Date();
+  setSiteRecordTime(i, field, fmt2(now.getHours())+':'+fmt2(now.getMinutes()));
+}
+function getSiteRecordName(r){
+  return r.site === '__other__' ? (r.siteOther||'') : (r.site||'');
+}
+function getSiteRecordMarkers(){
+  let plannedCount = 0;
+  return siteRecords.map(r=>{
+    let marker;
+    if(r.site === '__other__'){ marker = '★'; }
+    else { plannedCount++; marker = circledNumber(plannedCount); }
+    return {r, marker};
+  });
+}
+function renderSiteRecords(){
+  const container = document.getElementById('siteRecordsContainer');
+  const emptyMsg  = document.getElementById('planEmptyMsg');
+  const date = document.getElementById('reportDate').value;
+  const todays = plans[date] || [];
+  const uniqueSites = [...new Set(todays.map(p=>p.site).filter(s=>s))];
+  container.innerHTML = '';
+  if(!siteRecords.length){
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  emptyMsg.style.display = 'none';
+  const markers = getSiteRecordMarkers();
+  markers.forEach(({r, marker}, i)=>{
+    const isOther = r.site === '__other__';
+    const mins = computeDurationMinutes(r.actualArrival, r.actualDeparture);
+    let durText;
+    if(!r.actualArrival && !r.actualDeparture) durText = '―';
+    else if(mins==null) durText = '―（時刻を確認）';
+    else durText = formatMinutes(mins);
+
+    const optionsHtml = '<option value="">選択してください</option>' +
+      uniqueSites.map(s=>`<option value="${esc(s)}"${r.site===s?' selected':''}>${esc(s)}</option>`).join('') +
+      `<option value="__other__"${isOther?' selected':''}>その他（計画外・自由入力）</option>`;
+
+    const card = document.createElement('div');
+    card.className = 'other-item-card';
+    card.innerHTML = `
+      <div class="other-item-hd">
+        <span class="${isOther?'star-mark':'plan-num'}">${marker}</span>
+        <button class="rm-btn" onclick="removeSiteRecord(${r.id})">✕</button>
+      </div>
+      <div class="field">
+        <div class="field-label">現場名</div>
+        <select onchange="setSiteRecordField(${i}, 'site', this.value)">${optionsHtml}</select>
+        <input type="text" value="${esc(r.siteOther)}" placeholder="現場名を入力"
+          style="display:${isOther?'block':'none'}; margin-top:8px;"
+          oninput="setSiteRecordField(${i}, 'siteOther', this.value)" />
+      </div>
+      ${isOther ? `
+      <div class="field">
+        <div class="field-label">作業内容</div>
+        <input type="text" value="${esc(r.content)}" placeholder="業務内容"
+          oninput="setSiteRecordField(${i}, 'content', this.value)" />
+      </div>` : ''}
+      <div class="field">
+        <div class="field-label">住所 <span style="color:var(--gps);font-size:10px;">📍 GPS対応</span></div>
+        <div class="gps-row">
+          <div class="gps-display">
+            <div class="gps-dot${r.gpsLat?' ok':''}"></div>
+            <div>
+              <div class="gps-addr">${esc(r.address)||'未取得'}</div>
+              <div class="gps-coord">${r.gpsLat?`${r.gpsLat.toFixed(5)}, ${r.gpsLng.toFixed(5)}`:''}</div>
+            </div>
+          </div>
+          <button type="button" class="gps-btn" onclick="getGPSForRecord(${i})">📡 GPS</button>
+        </div>
+        <input type="text" value="${esc(r.address)}" placeholder="または住所を手入力"
+          oninput="setSiteRecordField(${i}, 'address', this.value)" />
+      </div>
+      <div class="two" style="margin-top:6px; margin-bottom:6px;">
+        <div class="field" style="margin-bottom:0;">
+          <div class="field-label">実績到着</div>
+          <div class="time-now-row">
+            <input type="time" value="${r.actualArrival||''}"
+              onchange="setSiteRecordTime(${i}, 'actualArrival', this.value)" />
+            <button type="button" class="time-now-btn"
+              onclick="setSiteRecordTimeNow(${i}, 'actualArrival')">🕐 今</button>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <div class="field-label">実績出発</div>
+          <div class="time-now-row">
+            <input type="time" value="${r.actualDeparture||''}"
+              onchange="setSiteRecordTime(${i}, 'actualDeparture', this.value)" />
+            <button type="button" class="time-now-btn"
+              onclick="setSiteRecordTimeNow(${i}, 'actualDeparture')">🕐 今</button>
+          </div>
+        </div>
+      </div>
+      <div class="work-item-duration">所要時間: ${durText}</div>`;
+    container.appendChild(card);
+  });
+}
+
+// ── Calc ──────────────────────────────────────────
+// ── Photos ────────────────────────────────────────
+function onDragOver(e){ e.preventDefault(); document.getElementById('dropArea').classList.add('drag-over'); }
+function onDragLeave(){ document.getElementById('dropArea').classList.remove('drag-over'); }
+function onDrop(e){ e.preventDefault(); document.getElementById('dropArea').classList.remove('drag-over'); handleFiles(Array.from(e.dataTransfer.files)); }
+function onFileSelect(e){ handleFiles(Array.from(e.target.files)); e.target.value=''; }
+function handleFiles(files){
+  const imgs=files.filter(f=>f.type.startsWith('image/'));
+  if(!imgs.length){snack('❌ 画像ファイルを選択してください');return;}
+  imgs.forEach(file=>{
+    const now=new Date();
+    const ts=`${now.getFullYear()}/${fmt2(now.getMonth()+1)}/${fmt2(now.getDate())} ${fmt2(now.getHours())}:${fmt2(now.getMinutes())}:${fmt2(now.getSeconds())}`;
+    const reader=new FileReader();
+    reader.onload=e=>{ photos.push({dataUrl:e.target.result,timestamp:ts,name:file.name}); renderPhotos(); snack(`📷 写真を追加（${ts}）`); };
+    reader.readAsDataURL(file);
+  });
+}
+function removePhoto(idx){ photos.splice(idx,1); renderPhotos(); }
+function renderPhotos(){
+  const grid=document.getElementById('photoGrid');
+  const badge=document.getElementById('photoCount');
+  if(!grid) return;
+  grid.innerHTML='';
+  badge.style.display=photos.length?'inline-flex':'none';
+  badge.textContent=photos.length;
+  photos.forEach((p,i)=>{
+    const item=document.createElement('div'); item.className='photo-item';
+    item.innerHTML=`<img src="${p.dataUrl}" /><div class="photo-overlay"><div class="photo-timestamp">${p.timestamp}</div></div><button class="photo-remove" onclick="removePhoto(${i})">✕</button>`;
+    grid.appendChild(item);
+  });
+}
+
+// ── Save & send to GAS ───────────────────────────
+async function saveReport(){
+  const btn=document.getElementById('saveBtn');
+  const date    =document.getElementById('reportDate').value;
+  const overtimeReason = document.getElementById('overtimeReason').value || '';
+  const homeTime = document.getElementById('homeTime').value || '―';
+  const homeTimeRaw = document.getElementById('homeTime').value;
+  const overtimeAutoMins = homeTimeRaw ? computeDurationMinutes('17:30', homeTimeRaw) : null;
+  const overtimeAuto = (overtimeAutoMins && overtimeAutoMins > 0) ? formatMinutes(overtimeAutoMins) : 'なし';
+
+  // 現場ごとの実績記録（計画にない現場は★＋作業内容）
+  const activeMarkers = getSiteRecordMarkers().filter(({r})=>getSiteRecordName(r));
+
+  const siteSummary = activeMarkers.map(({r, marker})=>{
+    const mins = computeDurationMinutes(r.actualArrival, r.actualDeparture);
+    const name = getSiteRecordName(r);
+    const contentPart = (r.site==='__other__' && r.content) ? `/${r.content}` : '';
+    return `${marker}${name}${contentPart}:${r.actualArrival||'―'}〜${r.actualDeparture||'―'}(${mins||0}分)`;
+  }).join(' / ');
+
+  const siteDetailLines = activeMarkers.map(({r, marker})=>{
+    const mins = computeDurationMinutes(r.actualArrival, r.actualDeparture);
+    const name = getSiteRecordName(r);
+    let line = `${marker} ${name}`;
+    if(r.site==='__other__' && r.content) line += ` / ${r.content}`;
+    line += `　実績: ${r.actualArrival||'―'}〜${r.actualDeparture||'―'}（所要 ${formatMinutes(mins)}）`;
+    if(r.address) line += `\n　　住所: ${r.address}`;
+    if(r.gpsLat) line += `\n　　GPS: ${r.gpsLat.toFixed(5)}, ${r.gpsLng.toFixed(5)}`;
+    return line;
+  }).join('\n');
+
+  const site = activeMarkers.length ? getSiteRecordName(activeMarkers[0].r) : '―';
+  const address = activeMarkers.length ? (activeMarkers[0].r.address || '―') : '―';
+
+  const payload={
+    date, siteName:site, address,
+    workItems:siteSummary,
+    workItemsDetail:siteDetailLines,
+    overtimeReason, homeTime, overtimeAuto,
+    photoCount:photos.length
+  };
+
+  // ローカル保存（常に実施）
+  const d=date?new Date(date):new Date();
+  const entry={
+    id:Date.now(), date, site,
+    overtimeAuto,
+    photoCount:photos.length,
+    report:buildReportText(payload, d)
+  };
+  rHistory.unshift(entry);
+  localStorage.setItem('planRep_history',JSON.stringify(rHistory));
+
+  // GAS送信
+  if(gasUrl){
+    btn.disabled=true;
+    btn.innerHTML='<span class="spin"></span> 送信中...';
+    try{
+      await fetch(gasUrl,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      showSuccessModal();
+    }catch(e){
+      snack('送信失敗。ローカルには保存済みです');
+    }
+    btn.disabled=false;
+    btn.innerHTML='☁️ 日報を保存・送信する';
+  } else {
+    showSuccessModal();
+  }
+}
+
+function showSuccessModal(){
+  document.getElementById('successModal').classList.add('open');
+}
+
+function closeSuccessAndReset(){
+  document.getElementById('successModal').classList.remove('open');
+  resetForm();
+  sw('history');
+}
+
+function resetForm(){
+  const today=new Date();
+  document.getElementById('reportDate').value=today.toISOString().slice(0,10);
+  document.getElementById('homeTime').value='';
+  updateOvertimeDisplay();
+  document.getElementById('overtimeReason').value='';
+  loadPlanForDate();
+}
+
+function buildReportText(p, d){
+  const dateStr=fmtDate(d);
+  let rep=`■ 現場日報\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  rep+=`日にち　: ${dateStr}\n`;
+  rep+=`帰宅時間: ${p.homeTime}\n\n`;
+  rep+=`\n━━━━━━━━━━━━━━━━━━━━━━━\n■ 現場ごとの実績\n\n`;
+  rep+= (p.workItemsDetail && p.workItemsDetail.trim()) ? p.workItemsDetail : '（記録された現場はありませんでした）';
+  rep+=`\n`;
+  rep+=`\n━━━━━━━━━━━━━━━━━━━━━━━\n残業時間（帰宅17:30超過分・自動計算）: ${p.overtimeAuto||'なし'}\n`;
+  if(p.overtimeReason && p.overtimeReason.trim()) rep+=`残業分析: ${p.overtimeReason}\n`;
+  if(p.photoCount>0) rep+=`\n添付写真: ${p.photoCount}枚\n`;
+  rep+=`\n━━━━━━━━━━━━━━━━━━━━━━━\n作成日時: ${new Date().toLocaleString('ja-JP')}`;
+  return rep;
+}
+
+// ── Draft (一時保存) ──────────────────────────
+function saveDraft(){
+  const draft={
+    date: document.getElementById('reportDate').value,
+    siteRecords: siteRecords,
+    overtimeReason: document.getElementById('overtimeReason').value,
+    homeTime: document.getElementById('homeTime').value,
+    savedAt: new Date().toLocaleString('ja-JP')
+  };
+  localStorage.setItem('planRep_draft', JSON.stringify(draft));
+  snack('📝 一時保存しました（'+draft.savedAt+'）');
+}
+
+function checkDraft(){
+  const draft=localStorage.getItem('planRep_draft');
+  if(draft) document.getElementById('draftBanner').classList.add('show');
+}
+
+function restoreDraft(){
+  const raw=localStorage.getItem('planRep_draft');
+  if(!raw) return;
+  const d=JSON.parse(raw);
+  document.getElementById('reportDate').value=d.date||'';
+  document.getElementById('overtimeReason').value=d.overtimeReason||'';
+  document.getElementById('homeTime').value=d.homeTime||'';
+  updateOvertimeDisplay();
+  const date = d.date;
+  const todaysPlan = plans[date] || [];
+  const uniqueSites = [...new Set(todaysPlan.map(p=>p.site).filter(s=>s))];
+  siteRecords = (d.siteRecords && d.siteRecords.length)
+    ? d.siteRecords
+    : uniqueSites.map(site=>({id: Date.now()+Math.random(), site, siteOther:'', content:'', actualArrival:'', actualDeparture:'', address:'', gpsLat:null, gpsLng:null}));
+  renderSiteRecords();
+  document.getElementById('draftBanner').classList.remove('show');
+  localStorage.removeItem('planRep_draft');
+  snack('✅ 入力内容を復元しました');
+}
+
+function dismissDraft(){
+  localStorage.removeItem('planRep_draft');
+  document.getElementById('draftBanner').classList.remove('show');
+  snack('🗑️ 下書きを削除しました');
+}
+
+// ── History ───────────────────────────────────────
+function renderHistory(){
+  const c=document.getElementById('histList');
+  if(!rHistory.length){
+    c.innerHTML='<div class="empty"><div class="ico">📂</div><p>保存された日報はありません</p></div>';
+    return;
+  }
+  c.innerHTML='';
+  rHistory.forEach(h=>{
+    const el=document.createElement('div'); el.className='hist-item';
+    el.innerHTML=`
+      <div class="hist-meta">
+        <span class="hist-date">${h.date}</span>
+        <span class="hist-sub">残業 ${h.overtimeAuto||'なし'}${h.photoCount?` / 📷${h.photoCount}枚`:''}</span>
+      </div>
+      <div class="hist-preview">📍 ${h.site}</div>`;
+    el.onclick=()=>{
+      document.getElementById('modalTitle').textContent=`${h.date} の日報`;
+      document.getElementById('modalBody').textContent=h.report;
+      document.getElementById('overlay').classList.add('open');
+    };
+    c.appendChild(el);
+  });
+}
+
+function copyCode(){
+  const code=document.getElementById('gasCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>snack('📋 コードをコピーしました'));
+}
+function closeOverlay(e){if(e.target.id==='overlay') document.getElementById('overlay').classList.remove('open');}
+function copyModal(){ navigator.clipboard.writeText(document.getElementById('modalBody').textContent).then(()=>snack('📋 コピーしました')); }
+function shareModal(){
+  const txt=document.getElementById('modalBody').textContent;
+  if(navigator.share){navigator.share({title:'現場日報',text:txt});}
+  else{navigator.clipboard.writeText(txt).then(()=>snack('📋 コピーしました'));}
+}
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function snack(msg){
+  const s=document.getElementById('snack');
+  s.textContent=msg; s.classList.add('show');
+  setTimeout(()=>s.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
